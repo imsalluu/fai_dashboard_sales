@@ -18,7 +18,7 @@ class MyApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'FAI Sales Dashboard',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.darkTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       routerConfig: router,

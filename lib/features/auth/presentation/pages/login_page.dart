@@ -28,19 +28,32 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.auto_graph, size: 100, color: Colors.white),
-                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 30, offset: const Offset(0, 10)),
+                        ],
+                      ),
+                      child: Image.asset('assets/images/fai_logo.png', width: 120, height: 120, fit: BoxFit.contain),
+                    ),
+                    const SizedBox(height: 32),
                     Text(
                       "FAI Sales Dashboard",
                       style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1,
                           ),
                     ),
+                    const SizedBox(height: 12),
                     Text(
-                      "Manage your sales funnel with ease",
+                      "Manage your sales funnel with smart efficiency",
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white70,
+                            color: Colors.white.withOpacity(0.8),
+                            fontWeight: FontWeight.w500,
                           ),
                     ),
                   ],

@@ -91,7 +91,7 @@ class DashboardLayout extends ConsumerWidget {
       ),
       _SidebarItem(
         icon: Icons.chat_bubble_outline_rounded,
-        title: "Leads & Queries",
+        title: "Sales",
         isActive: current == DashboardSection.queries,
         onTap: () => ref.read(navigationProvider.notifier).state = DashboardSection.queries,
       ),
@@ -119,10 +119,10 @@ class DashboardLayout extends ConsumerWidget {
         onTap: () => ref.read(navigationProvider.notifier).state = DashboardSection.addLead,
       ),
       _SidebarItem(
-        icon: Icons.checklist_rtl_rounded,
-        title: "My Tasks",
-        isActive: current == DashboardSection.tasks,
-        onTap: () => ref.read(navigationProvider.notifier).state = DashboardSection.tasks,
+        icon: Icons.chat_bubble_outline_rounded,
+        title: "Sales",
+        isActive: current == DashboardSection.mySales,
+        onTap: () => ref.read(navigationProvider.notifier).state = DashboardSection.mySales,
       ),
     ];
   }
@@ -131,23 +131,11 @@ class DashboardLayout extends ConsumerWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.4), blurRadius: 15, offset: const Offset(0, 4)),
-            ],
-          ),
-          child: const Icon(Icons.bolt, color: Colors.white, size: 28),
+        Image.asset(
+          'assets/images/fai_logo.png',
+          height: 90,
+          fit: BoxFit.contain,
         ),
-        const SizedBox(width: 14),
-        const Text("FIRE AI", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
       ],
     );
   }
@@ -158,7 +146,7 @@ class DashboardLayout extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 32),
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
-        border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Row(
         children: [
@@ -185,7 +173,7 @@ class DashboardLayout extends ConsumerWidget {
               const SizedBox(width: 12),
               CircleAvatar(
                 radius: 20,
-                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
                 child: Text(user?.name[0] ?? "U", style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
               ),
             ],
@@ -238,9 +226,9 @@ class _SidebarItem extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: isActive ? AppTheme.primaryColor.withValues(alpha: 0.15) : Colors.transparent,
+            color: isActive ? AppTheme.primaryColor.withOpacity(0.15) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: isActive ? Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)) : null,
+            border: isActive ? Border.all(color: AppTheme.primaryColor.withOpacity(0.3)) : null,
           ),
           child: Row(
             children: [

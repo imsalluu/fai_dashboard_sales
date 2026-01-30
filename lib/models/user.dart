@@ -4,17 +4,17 @@ class User {
   final String id;
   final String name;
   final String email;
+  final String? password;
   final UserRole role;
   final String? profileImage;
-  final String? assignedProfile; // e.g., "AI Hook", "Drift AI"
 
   User({
     required this.id,
     required this.name,
     required this.email,
+    this.password,
     required this.role,
     this.profileImage,
-    this.assignedProfile,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -22,9 +22,9 @@ class User {
       id: json['id'],
       name: json['name'],
       email: json['email'],
+      password: json['password'],
       role: json['role'] == 'admin' ? UserRole.admin : UserRole.sales,
       profileImage: json['profileImage'],
-      assignedProfile: json['assignedProfile'],
     );
   }
 
@@ -33,9 +33,9 @@ class User {
       'id': id,
       'name': name,
       'email': email,
+      'password': password,
       'role': role == UserRole.admin ? 'admin' : 'sales',
       'profileImage': profileImage,
-      'assignedProfile': assignedProfile,
     };
   }
 }

@@ -41,13 +41,13 @@ class PerformanceChart extends StatelessWidget {
             x: index,
             barRods: [
               BarChartRodData(
-                toY: d.queries.toDouble(), 
-                color: AppTheme.primaryColor.withValues(alpha: 0.2), 
+                // toY: d.queries.toDouble(), 
+                color: AppTheme.primaryColor.withOpacity(0.2), 
                 width: 16,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)), toY: double.infinity,
               ),
               BarChartRodData(
-                toY: d.converted.toDouble(), 
+                toY: double.infinity,
                 color: AppTheme.primaryColor, 
                 width: 16,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),

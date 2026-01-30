@@ -1,6 +1,8 @@
+import 'package:fai_dashboard_sales/features/admin/presentation/pages/query_management_page.dart';
+import 'package:fai_dashboard_sales/models/user.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../../../shared/widgets/dashboard_layout.dart';
 import '../../../../shared/widgets/stat_card.dart';
 import '../../../../models/query.dart';
@@ -17,25 +19,30 @@ class SalesDashboard extends ConsumerWidget {
     final currentSection = ref.watch(navigationProvider);
 
     return DashboardLayout(
-      title: _getTitle(currentSection),
-      child: _buildBody(currentSection),
+      title: _getSectionTitle(currentSection),
+      child: _buildSectionContent(currentSection, ref),
     );
   }
 
-  String _getTitle(DashboardSection section) {
+  String _getSectionTitle(DashboardSection section) {
     switch (section) {
-      case DashboardSection.salesOverview: return "My Performance";
+      case DashboardSection.salesOverview: return "Sales Performance";
       case DashboardSection.addLead: return "Register New Lead";
-      case DashboardSection.tasks: return "My Task Center";
-      default: return "Sales Dashboard";
+      case DashboardSection.tasks: return "Task Board";
+      case DashboardSection.mySales: return "Sales";
+      default: return "Sales Center";
     }
   }
 
-  Widget _buildBody(DashboardSection section) {
+  Widget _buildSectionContent(DashboardSection section, WidgetRef ref) {
     switch (section) {
       case DashboardSection.salesOverview: return const _OverviewTab();
       case DashboardSection.addLead: return const _QueryFormTab();
       case DashboardSection.tasks: return const _TasksTab();
+      case DashboardSection.mySales: 
+        return QueryManagementPage(
+          onAddOverride: () => ref.read(navigationProvider.notifier).state = DashboardSection.addLead,
+        );
       default: return const _OverviewTab();
     }
   }
@@ -46,76 +53,289 @@ class _OverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).user;
+    
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Dashboard Overview", style: Theme.of(context).textTheme.headlineMedium),
+          _buildWelcomeHeader(user),
           const SizedBox(height: 32),
-          LayoutBuilder(builder: (context, constraints) {
-            return GridView.count(
-              crossAxisCount: constraints.maxWidth > 1000 ? 3 : (constraints.maxWidth > 600 ? 2 : 1),
-              mainAxisSpacing: 24,
-              crossAxisSpacing: 24,
-              shrinkWrap: true,
-              childAspectRatio: 2.2,
-              physics: const NeverScrollableScrollPhysics(),
-              children: const [
-                StatCard(
-                  title: "My Total Queries",
-                  value: "14",
-                  icon: Icons.question_answer_rounded,
-                  color: AppTheme.primaryColor,
-                ),
-                StatCard(
-                  title: "My Conversion Rate",
-                  value: "28.5%",
-                  icon: Icons.trending_up_rounded,
-                  color: AppTheme.secondaryColor,
-                ),
-                StatCard(
-                  title: "Active Conversations",
-                  value: "5",
-                  icon: Icons.chat_bubble_rounded,
-                  color: AppTheme.accentColor,
-                ),
-              ],
-            );
-          }),
-          const SizedBox(height: 48),
-          Text("Recent Activity", style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 24),
-          _buildRecentList(),
+          _buildStatsGrid(context),
+          const SizedBox(height: 32),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 2, child: _buildPerformanceChart()),
+              const SizedBox(width: 32),
+              Expanded(flex: 1, child: _buildQuickActions()),
+            ],
+          ),
+          const SizedBox(height: 32),
+          _buildRecentActivitySection(context),
         ],
       ),
     );
   }
 
-  Widget _buildRecentList() {
+  Widget _buildWelcomeHeader(User? user) {
     return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: AppTheme.softShadow,
+        image: DecorationImage(
+          image: const NetworkImage("https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2000"),
+          fit: BoxFit.cover,
+          opacity: 0.05,
+          colorFilter: ColorFilter.mode(AppTheme.primaryColor.withOpacity(0.1), BlendMode.colorBurn),
+        ),
+      ),
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Welcome back,", style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 18)),
+              const SizedBox(height: 8),
+              Text(user?.name ?? "Sales Guru", style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.2), borderRadius: BorderRadius.circular(50), border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3))),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_awesome, color: AppTheme.primaryColor, size: 16),
+                    SizedBox(width: 8),
+                    Text("You're at 85% of your monthly goal", style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // const Spacer(),
+          // _buildHeaderStat("Target", "$/25.0k"),
+          // const SizedBox(width: 48),
+          // _buildHeaderStat("Achieved", "$ 21.4k"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderStat(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildStatsGrid(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final isSmall = constraints.maxWidth < 800;
+      return GridView.count(
+        crossAxisCount: isSmall ? 2 : 4,
+        mainAxisSpacing: 24,
+        crossAxisSpacing: 24,
+        shrinkWrap: true,
+        childAspectRatio: 1.8,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          _StatCard(title: "Total Queries", value: "48", icon: Icons.forum_rounded, color: Colors.blue, trend: "+12%"),
+          _StatCard(title: "Converted", value: "14", icon: Icons.check_circle_rounded, color: Colors.green, trend: "+5%"),
+          _StatCard(title: "Quote Sent", value: "26", icon: Icons.description_rounded, color: Colors.orange, trend: "+8%"),
+          _StatCard(title: "Response Rate", value: "92%", icon: Icons.bolt_rounded, color: Colors.purple, trend: "+2%"),
+        ],
+      );
+    });
+  }
+
+  Widget _buildPerformanceChart() {
+    return Container(
+      height: 400,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Query Activity (Weekly)", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+              Icon(Icons.more_horiz_rounded, color: AppTheme.mutedTextColor),
+            ],
+          ),
+          const SizedBox(height: 40),
+          Expanded(
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (val) => FlLine(color: Colors.white.withOpacity(0.05), strokeWidth: 1)),
+                titlesData: FlTitlesData(
+                  show: true,
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (val, meta) {
+                        const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        if (val >= 0 && val < labels.length) return Padding(padding: const EdgeInsets.only(top: 10), child: Text(labels[val.toInt()], style: const TextStyle(color: AppTheme.mutedTextColor, fontSize: 12)));
+                        return const SizedBox();
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: const [FlSpot(0, 3), FlSpot(1, 1), FlSpot(2, 4), FlSpot(3, 2), FlSpot(4, 5), FlSpot(5, 3), FlSpot(6, 4)],
+                    isCurved: true,
+                    gradient: const LinearGradient(colors: [AppTheme.primaryColor, AppTheme.secondaryColor]),
+                    barWidth: 4,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [AppTheme.primaryColor.withOpacity(0.2), AppTheme.secondaryColor.withOpacity(0.0)])),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Column(
+      children: [
+        _ActionItem(title: "Pending Quotes", count: "4", icon: Icons.pending_actions_rounded, color: Colors.orange),
+        const SizedBox(height: 20),
+        _ActionItem(title: "Follow-ups Today", count: "7", icon: Icons.notifications_active_rounded, color: Colors.red),
+        const SizedBox(height: 20),
+        _ActionItem(title: "High Value Leads", count: "3", icon: Icons.diamond_rounded, color: Colors.cyan),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivitySection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Recent Opportunities", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+        const SizedBox(height: 24),
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.cardColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 4,
+            separatorBuilder: (context, index) => Divider(height: 1, color: Colors.white.withOpacity(0.05)),
+            itemBuilder: (context, index) {
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                leading: CircleAvatar(
+                  backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                  child: const Icon(Icons.person_rounded, color: AppTheme.primaryColor, size: 20),
+                ),
+                title: const Text("Vikas Sharma", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                subtitle: const Text("Inquiry for AI-powered Shopify Bot", style: TextStyle(color: AppTheme.mutedTextColor, fontSize: 13)),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.blue.withOpacity(0.2))),
+                  child: const Text("QUOTE SENT", style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final String trend;
+
+  const _StatCard({required this.title, required this.value, required this.icon, required this.color, required this.trend});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
         boxShadow: AppTheme.softShadow,
       ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: 5,
-        separatorBuilder: (context, index) => Divider(height: 1, color: Colors.white.withValues(alpha: 0.05), indent: 70),
-        itemBuilder: (context, index) {
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            leading: CircleAvatar(
-              backgroundColor: const [AppTheme.primaryColor, AppTheme.secondaryColor, AppTheme.accentColor][index % 3].withValues(alpha: 0.1),
-              child: Text("C${index + 1}", style: TextStyle(color: const [AppTheme.primaryColor, AppTheme.secondaryColor, AppTheme.accentColor][index % 3], fontWeight: FontWeight.bold)),
-            ),
-            title: Text("Client ${index + 1}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textColor)),
-            subtitle: const Text("Ref: AI Solution Query • 2 hours ago", style: TextStyle(color: AppTheme.mutedTextColor)),
-            trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.mutedTextColor, size: 16),
-          );
-        },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 20)),
+              Text(trend, style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+              const SizedBox(height: 4),
+              Text(title, style: const TextStyle(color: AppTheme.mutedTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionItem extends StatelessWidget {
+  final String title;
+  final String count;
+  final IconData icon;
+  final Color color;
+
+  const _ActionItem({required this.title, required this.count, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Row(
+        children: [
+          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: color, size: 24)),
+          const SizedBox(width: 20),
+          Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold))),
+          Text(count, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+        ],
       ),
     );
   }
@@ -135,18 +355,31 @@ class _QueryFormTabState extends ConsumerState<_QueryFormTab> {
   final _clientNameController = TextEditingController();
   final _countryController = TextEditingController();
   final _quoteController = TextEditingController();
-  final _commentController = TextEditingController();
+  final _specialCommentController = TextEditingController();
+  final _monitoringRemarkController = TextEditingController();
   
   String _selectedProfile = 'AI Hook';
   String _selectedSource = 'Query';
-  String _selectedService = 'AI Website';
-  QueryStatus _selectedStatus = QueryStatus.query;
-  ConversationStatus _selectedConvStatus = ConversationStatus.active;
-  bool _isSold = false;
+  String _selectedService = 'Custom Website';
+  QueryStatus _selectedStatus = QueryStatus.quoteSent;
+  ConversationStatus _selectedConvStatus = ConversationStatus.needToFollowUp;
+  String? _selectedSoldBy;
+  List<User> _teamMembers = [];
 
-  bool _f1Done = false; DateTime? _f1Date;
-  bool _f2Done = false; DateTime? _f2Date;
-  bool _f3Done = false; DateTime? _f3Date;
+  bool _f1Done = false;
+  bool _f2Done = false;
+  bool _f3Done = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeamMembers();
+  }
+
+  Future<void> _loadTeamMembers() async {
+    final members = await _api.getMembers();
+    setState(() => _teamMembers = members);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -174,14 +407,14 @@ class _QueryFormTabState extends ConsumerState<_QueryFormTab> {
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8)),
+          BoxShadow(color: AppTheme.primaryColor.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8)),
         ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
             child: const Icon(Icons.add_task_rounded, color: Colors.white, size: 40),
           ),
           const SizedBox(width: 24),
@@ -190,7 +423,7 @@ class _QueryFormTabState extends ConsumerState<_QueryFormTab> {
             children: [
               const Text("Lead Registration", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              Text("Enter new query details for your company's records", style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16)),
+              Text("Enter new query details for your company's records", style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16)),
             ],
           ),
         ],
@@ -204,7 +437,7 @@ class _QueryFormTabState extends ConsumerState<_QueryFormTab> {
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
         boxShadow: AppTheme.softShadow,
       ),
       child: Form(
@@ -213,36 +446,63 @@ class _QueryFormTabState extends ConsumerState<_QueryFormTab> {
           children: [
             Row(
               children: [
-                Expanded(child: _buildInput("Client Name", _clientNameController, Icons.person_outline_rounded)),
+                Expanded(child: _buildInput("Client Name *", _clientNameController, Icons.person_outline_rounded)),
                 const SizedBox(width: 24),
-                Expanded(child: _buildInput("Country", _countryController, Icons.public_outlined)),
+                Expanded(child: _buildInput("Country *", _countryController, Icons.public_outlined)),
               ],
             ),
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(child: _buildDropdown("Profile Name", _selectedProfile, 
-                    ['AI Hook', 'Drift AI', 'AI Nest', 'Fire AI', 'AI Byte', 'Byte Craft'], 
+                Expanded(child: _buildDropdown("Profile Name *", _selectedProfile, 
+                    [
+                      'Byte Craft', 'Drift AI', 'Fire AI', 'AI Byte', 
+                      'AI Hook', 'AI Nest', 'Zebra App', 'Turtle App', 'Logic AI'
+                    ], 
                     (v) => setState(() => _selectedProfile = v!))),
                 const SizedBox(width: 24),
-                Expanded(child: _buildDropdown("Source", _selectedSource, 
-                    ['Query', 'Brief', 'Promoted', 'Direct Order'], 
+                Expanded(child: _buildDropdown("Source *", _selectedSource, 
+                    ['Query', 'Brief', 'Promoted', 'Direct Order', 'Referral'], 
                     (v) => setState(() => _selectedSource = v!))),
               ],
             ),
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(child: _buildDropdown("Service Line", _selectedService, 
-                    ['AI Website', 'AI Agent', 'Mobile App', 'Chatbot', 'Custom Website'], 
+                Expanded(child: _buildDropdown("Service Line *", _selectedService, 
+                    ['Custom Website', 'Mobile App', 'AI Mobile App', 'AI Website', 'AI Agent', 'Chatbot', 'Not Clarified', 'N8N Automation', 'Bux fixing'], 
                     (v) => setState(() => _selectedService = v!))),
                 const SizedBox(width: 24),
-                Expanded(child: _buildInput("Quote (Amount or Reference)", _quoteController, Icons.monetization_on_outlined)),
+                Expanded(child: _buildInput("Quote *", _quoteController, Icons.description_outlined)),
               ],
             ),
             const SizedBox(height: 24),
-            const Divider(color: Colors.white10),
+            Row(
+              children: [
+                Expanded(child: _buildDropdown("Query Status *", _selectedStatus.name, 
+                    QueryStatus.values.map((e) => e.name).toList(), 
+                    (v) => setState(() => _selectedStatus = QueryStatus.values.firstWhere((e) => e.name == v)))),
+                const SizedBox(width: 24),
+                Expanded(child: _buildDropdown("Conversation Status *", _selectedConvStatus.name, 
+                    ConversationStatus.values.map((e) => e.name).toList(), 
+                    (v) => setState(() => _selectedConvStatus = ConversationStatus.values.firstWhere((e) => e.name == v)))),
+              ],
+            ),
             const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: _buildDropdown("Sold By", _selectedSoldBy ?? 'None', 
+                    ['None', ..._teamMembers.map((m) => m.name)], 
+                    (v) => setState(() => _selectedSoldBy = v == 'None' ? null : v))),
+                const SizedBox(width: 24),
+                Expanded(child: _buildInput("Special Comment *", _specialCommentController, Icons.comment_outlined)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildInput("Monitoring Remark *", _monitoringRemarkController, Icons.remove_red_eye_outlined),
+            const SizedBox(height: 32),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 32),
             _buildFollowUpSection(),
             const SizedBox(height: 40),
             SizedBox(
@@ -267,60 +527,37 @@ class _QueryFormTabState extends ConsumerState<_QueryFormTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Follow-up Schedule", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textColor)),
+        const Text("Follow-up Status", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textColor)),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _fWidget(1, _f1Done, _f1Date, (v) => setState(() => _f1Done = v), (d) => setState(() => _f1Date = d)),
-            _fWidget(2, _f2Done, _f2Date, (v) => setState(() => _f2Done = v), (d) => setState(() => _f2Date = d)),
-            _fWidget(3, _f3Done, _f3Date, (v) => setState(() => _f3Done = v), (d) => setState(() => _f3Date = d)),
+            _fWidget(1, _f1Done, (v) => setState(() => _f1Done = v)),
+            _fWidget(2, _f2Done, (v) => setState(() => _f2Done = v)),
+            _fWidget(3, _f3Done, (v) => setState(() => _f3Done = v)),
           ],
         ),
       ],
     );
   }
 
-  Widget _fWidget(int num, bool done, DateTime? date, Function(bool) setDone, Function(DateTime) setDate) {
-    final hasDate = date != null;
+  Widget _fWidget(int num, bool done, Function(bool) setDone) {
     return Container(
       width: 140,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: done ? AppTheme.primaryColor.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: done ? AppTheme.primaryColor.withOpacity(0.3) : Colors.white.withOpacity(0.05)),
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("F-0$num", style: TextStyle(fontWeight: FontWeight.bold, color: done ? AppTheme.primaryColor : AppTheme.mutedTextColor)),
-              Checkbox(
-                value: done, 
-                onChanged: (v) => setDone(v!),
-                activeColor: AppTheme.primaryColor,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          InkWell(
-            onTap: () async {
-              final d = await showDatePicker(context: context, initialDate: date ?? DateTime.now(), firstDate: DateTime(2025), lastDate: DateTime(2027));
-              if (d != null) setDate(d);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              decoration: BoxDecoration(color: AppTheme.cardColor, borderRadius: BorderRadius.circular(8)),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.secondaryColor),
-                  const SizedBox(width: 8),
-                  Text(hasDate ? DateFormat('MMM dd').format(date) : "Set Date", style: const TextStyle(fontSize: 12, color: AppTheme.textColor)),
-                ],
-              ),
-            ),
+          Text("F-0$num", style: TextStyle(fontWeight: FontWeight.bold, color: done ? AppTheme.primaryColor : AppTheme.mutedTextColor)),
+          Checkbox(
+            value: done, 
+            onChanged: (v) => setDone(v!),
+            activeColor: AppTheme.primaryColor,
           ),
         ],
       ),
@@ -335,7 +572,7 @@ class _QueryFormTabState extends ConsumerState<_QueryFormTab> {
         labelText: label,
         prefixIcon: Icon(icon, size: 20, color: AppTheme.mutedTextColor),
       ),
-      validator: (v) => v!.isEmpty ? 'Field required' : null,
+      validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
     );
   }
 
@@ -347,6 +584,7 @@ class _QueryFormTabState extends ConsumerState<_QueryFormTab> {
       decoration: InputDecoration(labelText: label),
       items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
       onChanged: onChange,
+      validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
     );
   }
 
@@ -356,19 +594,21 @@ class _QueryFormTabState extends ConsumerState<_QueryFormTab> {
       final q = SalesQuery(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         date: DateTime.now(),
+        employeeName: user?.name ?? "-",
         profileName: _selectedProfile,
         clientName: _clientNameController.text,
         source: _selectedSource,
         serviceLine: _selectedService,
         country: _countryController.text,
         quote: _quoteController.text,
-        specialComment: _commentController.text,
+        specialComment: _specialCommentController.text,
         status: _selectedStatus,
-        followUp1Done: _f1Done, followUp1Date: _f1Date,
-        followUp2Done: _f2Done, followUp2Date: _f2Date,
-        followUp3Done: _f3Done, followUp3Date: _f3Date,
+        followUp1Done: _f1Done,
+        followUp2Done: _f2Done,
+        followUp3Done: _f3Done,
         conversationStatus: _selectedConvStatus,
-        sold: _isSold,
+        soldBy: _selectedSoldBy,
+        monitoringRemark: _monitoringRemarkController.text,
         assignedMemberId: user?.id ?? "0",
       );
       await _api.addQuery(q);
@@ -430,14 +670,14 @@ class _TasksTab extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
         boxShadow: AppTheme.softShadow,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(width: 24),

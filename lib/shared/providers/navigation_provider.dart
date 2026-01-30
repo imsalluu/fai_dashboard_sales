@@ -10,7 +10,8 @@ enum DashboardSection {
   // Sales Sections
   salesOverview,
   addLead,
-  tasks
+  tasks,
+  mySales
 }
 
 final navigationProvider = StateProvider<DashboardSection>((ref) => DashboardSection.overview);
